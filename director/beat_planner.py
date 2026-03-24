@@ -12,50 +12,35 @@ class BeatPlanner:
         beat_id = 1
         current_time = 0.0
 
-        for unit in scene["dialogue_units"]:
+        dialogue_units = scene["dialogue_units"]
 
-            speaker = unit["speaker"]
-            dialogue = unit["dialogue"]
+        # 🔥 ONE LLM CALL (not loop)
+        results = self.llm.analyze_scene(dialogue_units)
 
-            # 🔥 Call LLM for cinematic analysis
-            result = self.llm.analyze_dialogue(dialogue, speaker)
+        for i, unit in enumerate(dialogue_units):
 
-            # ✅ Safe fallback (in case LLM fails)
-            emotion = result.get("emotion", "neutral")
-            intent = result.get("intent", "statement")
-            shot_type = result.get("shot_type", "medium")
-            camera_angle = result.get("camera_angle", "eye_level")
-            camera_movement = result.get("camera_movement", "static")
+            result = results[i] if i < len(results) else {}
 
-            try:
-                duration = float(result.get("duration", 2.5))
-            except:
-                duration = 2.5
+            duration = float(result.get("duration", 2.5))
 
-            # 🎬 Build beat
             beat = {
                 "scene_id": scene.get("scene_id", 1),
                 "beat_id": beat_id,
-                "speaker": speaker,
-                "dialogue": dialogue,
+                "speaker": unit["speaker"],
+                "dialogue": unit["dialogue"],
 
-                # 🧠 AI outputs
-                "emotion": emotion,
-                "intent": intent,
+                "emotion": result.get("emotion", "neutral"),
+                "intent": result.get("intent", "statement"),
+                "shot_type": result.get("shot_type", "medium"),
+                "camera_angle": result.get("camera_angle", "eye_level"),
+                "camera_movement": result.get("camera_movement", "static"),
 
-                # 🎥 Cinematography
-                "shot_type": shot_type,
-                "camera_angle": camera_angle,
-                "camera_movement": camera_movement,
-
-                # ⏱ Timing
                 "start_time": round(current_time, 2),
                 "duration": round(duration, 2)
             }
 
             beats.append(beat)
 
-            # ⏳ Update timeline
             current_time += duration
             beat_id += 1
 
