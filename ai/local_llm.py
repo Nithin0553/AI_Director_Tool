@@ -1,5 +1,6 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
+import json
 
 
 class LocalLLM:
@@ -21,7 +22,7 @@ class LocalLLM:
         for i, unit in enumerate(dialogue_units[:10]):  # LIMIT for speed
             combined_text += f"{i+1}. {unit['speaker']}: {unit['dialogue']}\n"
 
-        prompt = f"""
+        prompt = """
 You are an expert film director and cinematic AI system.
 
 Your task is to convert dialogue into a structured Beat Script for a cinematic engine.
@@ -240,7 +241,7 @@ OUTPUT FORMAT (STRICT JSON LIST):
 --------------------------------------------------
 
 Now process the input dialogues and generate a cinematic Beat Script.
-"""
+"""+ combined_text
 
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
 
@@ -255,6 +256,6 @@ Now process the input dialogues and generate a cinematic Beat Script.
         try:
             json_start = response.find("[")
             json_end = response.rfind("]") + 1
-            return eval(response[json_start:json_end])
+            return json.loads(response[json_start:json_end])
         except:
             return []
